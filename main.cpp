@@ -340,7 +340,7 @@ void enter(){
 
 void switchToCommandMode(){
 	printCommandMode();
-	disableNormalMode;
+	disableNormalMode();
 	for(int i = commandLine; i<w.ws_row; i++){
 		for(int j=0; j<w.ws_col; j++){
 			if(i==commandLine && j<18) continue;
