@@ -500,6 +500,63 @@ void goTo(){
 		}
 }
 
+bool search_helper(string dirName, string tobeSearch){
+	DIR *di;
+	struct dirent *diren;
+	struct stat fileInfo;
+
+	if(!(di = opendir(dirName.c_str()))){
+		printStatusLine("Can't open the directory         ");
+		return false;
+	}
+
+	chdir(dirName.c_str()); 
+	while((diren = readdir(di))){
+		lstat(diren->d_name,&fileInfo);
+		string dname =  string(diren->d_name);
+		if(tobeSearch == dname){
+			//printAlertLine("A WILD TRUE APPEARS");
+			processCurrentDIR(dirName.c_str());
+			return true;
+		}
+		if(S_ISDIR(fileInfo.st_mode)){
+			if( (dname == ".") || (dname == "..") ){
+				continue;
+			}
+			bool t =  search_helper(dirName + '/' + dname, tobeSearch);
+			if(t) return true;
+		}
+	}
+	chdir("..");
+	closedir(di);
+	return false;
+}
+
+bool search(){
+	string tbs = commandTokens[1];
+	return search_helper(cwd, tbs);
+}
+
+bool modifyPath(){
+	int len = commandTokens.size();
+	string path = commandTokens[len-1];
+
+	if(path[0]=='~')
+	path.replace(0,1, rootPath);
+	else if(path[0]=='.')
+	path = cwd;
+	else if(path[0]=='/')
+	path = cwd + path;
+	else{
+		printStatusLine("Invalid path !");
+		return false;
+	}
+
+	commandTokens[len-1] = path;
+	printAlertLine(path);
+	return true;
+}
+
 bool performActions(string query){
 	
 	if(query == "exit"){
@@ -571,6 +628,12 @@ bool performActions(string query){
 		goTo();
 	}
 
+	else if(query == "search"){
+		bool f = search();
+		if(f) printStatusLine("File/Folder found!");
+		else printStatusLine("File/Folder not found!");
+	}
+
 	else{
 		printStatusLine("Invalid Command!");
 	}
@@ -593,7 +656,9 @@ void switchToCommandMode(){
 		while(getline(sscommand, token, ' ')) commandTokens.push_back(token); 
 
 		string query = commandTokens[0];
+		int isValidPath = modifyPath();	
 		
+		if(!isValidPath && query != "exit" && query != "rename" && query != "search") continue;
 		if(performActions(query)) break;
 	}
 
